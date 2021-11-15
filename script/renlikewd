@@ -1,0 +1,87 @@
+#!perl
+
+use strict;
+use warnings;
+
+use Perinci::CmdLine::Any;
+
+# AUTHORITY
+# DATE
+# DIST
+# VERSION
+
+our %SPEC;
+
+$SPEC{app} = {
+    v => 1.1,
+    summary => "Rename a file so it becomes like the current directory's name",
+    description => <<'_',
+
+    % pwd
+    /home/u1/Some Project/Some Title
+    % renlikewd foo.jpg; # foo.jpg now becomes "Some Title.jpg"
+
+_
+    args => {
+        file => {
+            schema => 'filename*',
+            req => 1,
+            pos => 0,
+        },
+        #extension => {
+        #    summary => 'Add extension to the new name',
+        #    schema => 'str*',
+        #    pos => 1,
+        #},
+        overwrite => {
+            schema => 'bool*',
+            cmdline_aliases => {O=>{}},
+        },
+    },
+};
+sub app {
+    require Cwd;
+    require File::MoreUtil;
+
+    my %args = @_;
+    my $file = $args{file} or return [400, "Please specify file to rename"];
+    return [404, "File '$file' does not exist"]
+        unless File::MoreUtil::file_exists($file);
+    my $ext = $file =~ /.(\.\w+)$/ ? $1 : "";
+
+    my $cwd = Cwd::getcwd();
+    return [412, "Please don't run me in root directory as it's meaningless"]
+        if $cwd eq '/';
+
+    my ($curname) = $cwd =~ m!/([^/]*)$!;
+
+    my $newfile = "$curname$ext";
+    return [412, "New name '$newfile' already exists, use --overwrite (-O) to overwrite existing file"]
+        if File::MoreUtil::file_exists($newfile) && !$args{overwrite};
+
+    rename $file, $newfile
+        or return [500, "Can't rename $file -> $newfile: $!"];
+
+    [200];
+}
+
+Perinci::CmdLine::Any->new(
+    url => "/main/app",
+)->run;
+
+1;
+# ABSTRACT:
+# PODNAME:
+
+=head1 SYNOPSIS
+
+    % pwd
+    /home/u1/Some Project/Some Title
+    % renlikewd foo.jpg; # foo.jpg now becomes "Some Title.jpg"
+
+
+=head1 SEE ALSO
+
+L<renwd> (from L<App::renwd>)
+
+=cut
