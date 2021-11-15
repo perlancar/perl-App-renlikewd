@@ -14,7 +14,7 @@ our %SPEC;
 
 $SPEC{app} = {
     v => 1.1,
-    summary => "Rename a file so it becomes like the current directory's name",
+    summary => "REName a file so it becomes LIKE the current (Working) Directory's name",
     description => <<'_',
 
     % pwd
