@@ -51,12 +51,12 @@ _
 };
 sub app {
     require Cwd;
-    require File::MoreUtil;
+    require File::Util::Test;
 
     my %args = @_;
     my $file = $args{file} or return [400, "Please specify file to rename"];
     return [404, "File '$file' does not exist"]
-        unless File::MoreUtil::file_exists($file);
+        unless File::Util::Test::file_exists($file);
     my $ext = $file =~ /.(\.\w+)$/ ? $1 : "";
 
     my $cwd = Cwd::getcwd();
@@ -67,7 +67,7 @@ sub app {
 
     my $newfile = "$curname$ext";
     return [412, "New name '$newfile' already exists, use --overwrite (-O) to overwrite existing file"]
-        if File::MoreUtil::file_exists($newfile) && !$args{overwrite};
+        if File::Util::Test::file_exists($newfile) && !$args{overwrite};
 
     rename $file, $newfile
         or return [500, "Can't rename $file -> $newfile: $!"];
