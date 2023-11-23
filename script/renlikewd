@@ -2,6 +2,7 @@
 
 use strict;
 use warnings;
+use Log::ger;
 
 use Perinci::CmdLine::Any;
 
@@ -38,6 +39,13 @@ _
             req => 1,
             pos => 0,
         },
+        parents => {
+            schema => 'posint*',
+            summary => 'Instead of working directory, use its parent directory (if parents=1) or grandparent directory (if parents=2) and so on',
+            cmdline_aliases => {
+                p => {is_flag=>1, code=>sub { $_[0]{parents} = 1 }, summary => 'Shortcut for --parents=1'},
+            },
+        },
         #extension => {
         #    summary => 'Add extension to the new name',
         #    schema => 'str*',
@@ -48,6 +56,9 @@ _
             cmdline_aliases => {O=>{}},
         },
     },
+    features => {
+        dry_run => 1,
+    },
 };
 sub app {
     require Cwd;
@@ -55,6 +66,8 @@ sub app {
 
     my %args = @_;
     my $file = $args{file} or return [400, "Please specify file to rename"];
+    my $parents = $args{parent} // 0;
+
     return [404, "File '$file' does not exist"]
         unless File::Util::Test::file_exists($file);
     my $ext = $file =~ /.(\.\w+)$/ ? $1 : "";
@@ -63,20 +76,32 @@ sub app {
     return [412, "Please don't run me in root directory as it's meaningless"]
         if $cwd eq '/';
 
-    my ($curname) = $cwd =~ m!/([^/]*)$!;
-
+    my ($p, $curname) = 0;
+    while (1) {
+        $cwd =~ s!/([^/]+)$!! or return [400, "Can't use working/parent directory because we already reach root"];
+        $curname = $1;
+        last if $p++ >= $parents;
+    }
     my $newfile = "$curname$ext";
     return [412, "New name '$newfile' already exists, use --overwrite (-O) to overwrite existing file"]
         if File::Util::Test::file_exists($newfile) && !$args{overwrite};
 
-    rename $file, $newfile
-        or return [500, "Can't rename $file -> $newfile: $!"];
+    if ($args{dry_run}) {
+        log_info "DRY-RUN: Renaming %s to %s ...", $file, $newfile;
+        return [200, "OK (dry-run)"];
+    } else {
+        log_info "Renaming %s to %s ...", $file, $newfile;
+        rename $file, $newfile
+            or return [500, "Can't rename $file -> $newfile: $!"];
+        return [200, "OK"];
+    }
 
-    [200];
 }
 
 Perinci::CmdLine::Any->new(
     url => "/main/app",
+    debug => 1,
+    log_level => 'info',
 )->run;
 
 1;
