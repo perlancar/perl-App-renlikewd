@@ -20,7 +20,7 @@ $SPEC{app} = {
 
     % pwd
     /home/u1/Some Project/Some Rather Long Title
-    % renlikewd foo.jpg; # foo.jpg now becomes "Some Rather Long Title.jpg"
+    % renlikewd --no-dry-run foo.jpg; # foo.jpg now becomes "Some Rather Long Title.jpg"
 
 Here's what I now often have to do: put some file under a subdirectory with the
 same name as the file (sans the extension), with the name being quite long. I
@@ -32,10 +32,15 @@ Alt-Enter because one of the pane is already inside the directory.
 
 This utility helps.
 
+Note that this utility can default to the only file in the current directory (if
+there are only a single file and zero or more directories and nothing else), so
+to minimize surprise, the default mode is dry-run. Supply `--no-dry-run` to turn
+off dry-run mode.
+
 _
     args => {
         file => {
-            schema => 'filename*',
+            schema => 'filename::default_file_not_dir_in_curdir*',
             req => 1,
             pos => 0,
         },
@@ -57,7 +62,7 @@ _
         },
     },
     features => {
-        dry_run => 1,
+        dry_run => {default=>1},
     },
 };
 sub app {
