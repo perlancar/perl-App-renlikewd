@@ -66,7 +66,7 @@ sub app {
 
     my %args = @_;
     my $file = $args{file} or return [400, "Please specify file to rename"];
-    my $parents = $args{parent} // 0;
+    my $parents = $args{parents} // 0;
 
     return [404, "File '$file' does not exist"]
         unless File::Util::Test::file_exists($file);
@@ -76,7 +76,8 @@ sub app {
     return [412, "Please don't run me in root directory as it's meaningless"]
         if $cwd eq '/';
 
-    my ($p, $curname) = 0;
+    my $p = 0;
+    my $curname;
     while (1) {
         $cwd =~ s!/([^/]+)$!! or return [400, "Can't use working/parent directory because we already reach root"];
         $curname = $1;
@@ -86,7 +87,7 @@ sub app {
     return [412, "New name '$newfile' already exists, use --overwrite (-O) to overwrite existing file"]
         if File::Util::Test::file_exists($newfile) && !$args{overwrite};
 
-    if ($args{dry_run}) {
+    if ($args{-dry_run}) {
         log_info "DRY-RUN: Renaming %s to %s ...", $file, $newfile;
         return [200, "OK (dry-run)"];
     } else {
@@ -100,7 +101,7 @@ sub app {
 
 Perinci::CmdLine::Any->new(
     url => "/main/app",
-    debug => 1,
+    log => 1,
     log_level => 'info',
 )->run;
 
